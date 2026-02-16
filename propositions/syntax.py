@@ -59,7 +59,7 @@ def is_binary(string: str) -> bool:
     Returns:
         ``True`` if the given string is a binary operator, ``False`` otherwise.
     """
-    return string == '&' or string == '|' or string == '->'
+    return string in {'&', '|',  '->', '+', '<->', '-&', '-|'}
     # For Chapter 3:
     # return string in {'&', '|',  '->', '+', '<->', '-&', '-|'}
 
@@ -360,6 +360,16 @@ class Formula:
         for variable in substitution_map:
             assert is_variable(variable)
         # Task 3.3
+        if is_variable(self.root):
+            return substitution_map.get(self.root, self)
+        elif is_constant(self.root):
+            return self
+        elif is_unary(self.root):
+            return Formula(self.root, self.first.substitute_variables(substitution_map))
+        else:
+            return Formula(self.root, 
+                           self.first.substitute_variables(substitution_map),
+                           self.second.substitute_variables(substitution_map))
 
     def substitute_operators(self, substitution_map: Mapping[str, Formula]) -> \
             Formula:
@@ -390,3 +400,20 @@ class Formula:
                    is_binary(operator)
             assert substitution_map[operator].variables().issubset({'p', 'q'})
         # Task 3.4
+        if is_variable(self.root):
+            return self
+        elif is_constant(self.root):
+            if self.root in substitution_map:
+                return substitution_map[self.root]
+            return self
+        elif is_unary(self.root):
+            s1 = self.first.substitute_operators(substitution_map)
+            if self.root in substitution_map:
+                return substitution_map[self.root].substitute_variables({'p': s1})
+            return Formula(self.root, s1)
+        else:
+            s1 = self.first.substitute_operators(substitution_map)
+            s2 = self.second.substitute_operators(substitution_map)
+            if self.root in substitution_map:
+                return substitution_map[self.root].substitute_variables({'p': s1, 'q': s2})
+            return Formula(self.root, s1, s2)
